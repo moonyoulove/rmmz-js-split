@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>rmmv split js</title>
+  <script>
+    document.write(
+      '<script>let tarball={TarReader:class{constructor(){this.fileInfo=[]}readFile(e){return new Promise((t,i)=>{let r=new FileReader;r.onload=(e=>{this.buffer=e.target.result,this.fileInfo=[],this._readFileInfo(),t(this.fileInfo)}),r.readAsArrayBuffer(e)})}readArrayBuffer(e){return new Promise((t,i)=>{this.buffer=e,this.fileInfo=[],this._readFileInfo(),t(this.fileInfo)})}_readFileInfo(){this.fileInfo=[];let e=0,t=0,i="",r=null;for(;e<this.buffer.byteLength-512&&0!=(i=this._readFileName(e)).length;)r=this._readFileType(e),t=this._readFileSize(e),this.fileInfo.push({name:i,type:r,size:t,header_offset:e}),e+=512+512*Math.trunc(t/512),t%512&&(e+=512)}getFileInfo(){return this.fileInfo}_readString(e,t){let i=new Uint8Array(this.buffer,e,t),r=0,l="";for(;0!=i[r];)l+=String.fromCharCode(i[r]),r++;return l}_readFileName(e){return this._readString(e,100)}_readFileType(e){let t=new Uint8Array(this.buffer,e+156,1),i=String.fromCharCode(t[0]);return"0"==i?"file":"5"==i?"directory":i}_readFileSize(e){let t=new Uint8Array(this.buffer,e+124,12),i="";for(let e=0;e<11;e++)i+=String.fromCharCode(t[e]);return parseInt(i,8)}_readFileBlob(e,t,i){let r=new Uint8Array(this.buffer,e,t);return new Blob([r],{type:i})}_readTextFile(e,t){let i=new Uint8Array(this.buffer,e,t),r="";for(let e=0;e<t;e++)r+=String.fromCharCode(i[e]);return r}getTextFile(e){let t=this.fileInfo.findIndex(t=>t.name==e);if(t>=0){let e=this.fileInfo[t];return this._readTextFile(e.header_offset+512,e.size)}}getFileBlob(e,t){let i=this.fileInfo.findIndex(t=>t.name==e);if(i>=0){let e=this.fileInfo[i];return this._readFileBlob(e.header_offset+512,e.size,t)}}},TarWriter:class{constructor(){this.fileData=[]}addTextFile(e,t,i){let r=new ArrayBuffer(t.length),l=new Uint8Array(r);for(let e=0;e<t.length;e++)l[e]=t.charCodeAt(e);this.fileData.push({name:e,array:l,type:"file",size:l.length,dataType:"array",opts:i})}addFileArrayBuffer(e,t,i){let r=new Uint8Array(t);this.fileData.push({name:e,array:r,type:"file",size:r.length,dataType:"array",opts:i})}addFile(e,t,i){this.fileData.push({name:e,file:t,size:t.size,type:"file",dataType:"file",opts:i})}addFolder(e,t){this.fileData.push({name:e,type:"directory",size:0,dataType:"none",opts:t})}_createBuffer(){let e=0;for(let t=0;t<this.fileData.length;t++){let i=this.fileData[t].size;e+=512+512*Math.trunc(i/512),i%512&&(e+=512)}let t=10240*Math.trunc(e/10240);e%10240&&(t+=10240),this.buffer=new ArrayBuffer(t)}async download(e){let t=await this.write(),i=document.createElement("a");i.href=URL.createObjectURL(t),i.download=e,i.style.display="none",document.body.appendChild(i),i.click(),document.body.removeChild(i)}write(){return new Promise((e,t)=>{this._createBuffer();let i=0,r=0,l=()=>{if(++r===this.fileData.length){let t=new Uint8Array(this.buffer),i=new Blob([t],{type:"application/x-tar"});e(i)}};for(let e=0;e<this.fileData.length;e++){let t=this.fileData[e];this._writeFileName(t.name,i),this._writeFileType(t.type,i),this._writeFileSize(t.size,i),this._fillHeader(i,t.opts,t.type),this._writeChecksum(i);let r=new Uint8Array(this.buffer,i+512,t.size);if("array"===t.dataType){for(let e=0;e<t.size;e++)r[e]=t.array[e];l()}else if("file"===t.dataType){let e=new FileReader;e.onload=function(e){let t=r;return function(e){let i=e.target.result,r=new Uint8Array(i);for(let e=0;e<r.length;e++)t[e]=r[e];l()}}(),e.readAsArrayBuffer(t.file)}else"directory"===t.type&&l();i+=512+512*Math.trunc(t.size/512),t.size%512&&(i+=512)}})}_writeString(e,t,i){let r=new Uint8Array(this.buffer,t,i);for(let t=0;t<i;t++)t<e.length?r[t]=e.charCodeAt(t):r[t]=0}_writeFileName(e,t){this._writeString(e,t,100)}_writeFileType(e,t){let i="0";"file"===e?i="0":"directory"===e&&(i="5"),new Uint8Array(this.buffer,t+156,1)[0]=i.charCodeAt(0)}_writeFileSize(e,t){let i=e.toString(8);i=this._leftPad(i,11),this._writeString(i,t+124,12)}_leftPad(e,t){let i=e+"";for(;i.length<t;)i="0"+i;return i}_writeFileMode(e,t){this._writeString(this._leftPad(e,7),t+100,8)}_writeFileUid(e,t){this._writeString(this._leftPad(e,7),t+108,8)}_writeFileGid(e,t){this._writeString(this._leftPad(e,7),t+116,8)}_writeFileMtime(e,t){this._writeString(this._leftPad(e,11),t+136,12)}_writeFileUser(e,t){this._writeString(e,t+265,32)}_writeFileGroup(e,t){this._writeString(e,t+297,32)}_writeChecksum(e){this._writeString("        ",e+148,8);let t=new Uint8Array(this.buffer,e,512),i=0;for(let e=0;e<512;e++)i+=t[e];this._writeString(i.toString(8),e+148,8)}_getOpt(e,t,i){return null!=e&&null!=e[t]?e[t]:i}_fillHeader(e,t,i){let r=this._getOpt(t,"uid",1e3),l=this._getOpt(t,"gid",1e3),a=this._getOpt(t,"mode","file"===i?"664":"775"),n=this._getOpt(t,"mtime",Date.now()),s=this._getOpt(t,"user","tarballjs"),f=this._getOpt(t,"group","tarballjs");this._writeFileMode(a,e),this._writeFileUid(r.toString(8),e),this._writeFileGid(l.toString(8),e),this._writeFileMtime(Math.trunc(n/1e3).toString(8),e),this._writeString("ustar",e+257,6),this._writeString("00",e+263,2),this._writeFileUser(s,e),this._writeFileGroup(f,e)}}};<\/script>'
+    );
+  </script>
+</head>
+
+<body>
+  <div>上傳一個以上rmmz的js檔(ex. rmmz_core.js)</div><br />
+  <input type="file" id="get" multiple>
+  <script>
+    document.getElementById("get").addEventListener("change", function(e) {
+      reader = new FileReader();
+      var writer = new tarball.TarWriter();
+      Array.from(e.target.files).reduce(function(promise, file) {
+        return promise.then(function() {
+          return new Promise(function(resolve, reject) {
+            reader.readAsText(file);
+            reader.onload = function() {
+              resolve();
+            }
+          }).then(function() {
+            var folder = file.name.match(/(\S+)\.js/)[1];
+            var class_map = new Map();
+            var regex =
+              /\/\/[-=][\S ]+(?:\r\n|\n)\/\/ ?([\S ]+)|\/\/[-==][\S ]+(?:\r\n|\n){1,2}\/\*\*(?:[\S ]*(?:\r\n|\n)){1,10}(?: \* @namespace (\S+)|function (\w+))/g;
+            var js_string = reader.result;
+            var end = 0;
+            var className = "";
+            var start = 0;
+            while (true) {
+              var result = regex.exec(js_string);
+              if (!result) {
+                break;
+              }
+              end = result.index - 1;
+              if (start != 0) {
+                class_map.set(className, js_string.slice(start, end));
+              }
+              className = result[1] ? result[1] : result[2] ? result[2] : result[3];
+              start = result.index;
+            }
+            class_map.set(className, js_string.slice(start));
+            class_map.forEach(function(content, fileName) {
+              writer.addTextFile(`${folder}\/${fileName}.js`,
+                content);
+            });
+          });
+        })
+      }, Promise.resolve()).then(function() {
+        var version = reader.result.match(/\/\/=+\s+\/\/([\S ]+)\s+\/\/=+/)[1].split(" ").filter(
+          function(ele) {
+            return ele != "";
+          })[1];
+        writer.download(`rmmz_js_split_${version}.tar`);
+      });
+    });
+
+    function save(map = new Map()) {
+      var writer = new tarball.TarWriter();
+      map.forEach(function(content, filename) {
+        writer.addTextFile(`${filename}.js`, content);
+      });
+      writer.download(input.files[0].name.match(/(\S+)\.js/)[1]);
+    }
+  </script>
+</body>
+
+</html>
